@@ -4,6 +4,9 @@
 
 #include "opus_fec.h"
 #include <assert.h>
+#include <fstream>
+#include <memory>
+#include <string.h>
 
 #define  OPUS_DEFAULT_SAMPLE_RATE  (48000)
 #define  OPUS_DEFAULT_CHANNELS     (2)
@@ -33,6 +36,41 @@ OpusFec::~OpusFec()
 
 void OpusFec::test()
 {
+    uint32_t   pcmDataSize = (OPUS_DEFAULT_SAMPLE_RATE/50)*OPUS_DEFAULT_CHANNELS*2;
+    uint32_t   opusDataSize = 0;
+    opus_int16 pcmData[4*1024] = {0};
+    uint8_t    opusData[4*1024] = {0};
 
+    int rt = 0;
+    std::ifstream inFile;
+    inFile.open("../test.pcm", std::ios::binary);
+    inFile.seekg(0, std::ifstream::end);
+    int fileLength = inFile.tellg();
+    inFile.seekg(0, std::ifstream::beg);
+
+    std::ofstream outFile;
+    outFile.open("out.pcm", std::ios::binary);
+
+    while (!inFile.eof() || fileLength < pcmDataSize)
+    {
+        memset((void*)pcmData, 0, sizeof(pcmData));
+        memset((void*)opusData, 0, sizeof(opusData));
+        inFile.read((char*)pcmData, pcmDataSize);
+
+        //opus编码
+        opusDataSize = opus_encode(this->opusEncode, (opus_int16*)pcmData, OPUS_DEFAULT_SAMPLE_RATE/50, opusData, sizeof(opusData));
+
+        //opus解码
+        rt = opus_decode(opusDecode, (const unsigned char*)opusData, opusDataSize, (opus_int16*)pcmData, OPUS_DEFAULT_SAMPLE_RATE/50, 0);
+        assert(rt >= 0);
+
+        outFile.write((const char*)pcmData, rt*OPUS_DEFAULT_CHANNELS*2);
+        fileLength -= pcmDataSize;
+    }
+
+    inFile.close();
+    outFile.close();
+
+    std::cout << "run end!" << std::endl;
 }
 
