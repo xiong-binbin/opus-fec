@@ -42,6 +42,7 @@ void OpusFec::test()
     uint8_t    opusData[4*1024] = {0};
 
     int rt = 0;
+    int i = 0;
     std::ifstream inFile;
     inFile.open("../test.pcm", std::ios::binary);
     inFile.seekg(0, std::ifstream::end);
@@ -51,26 +52,49 @@ void OpusFec::test()
     std::ofstream outFile;
     outFile.open("out.pcm", std::ios::binary);
 
+    std::ofstream tmpFile;
+    tmpFile.open("tmp.pcm", std::ios::binary);
+
     while (!inFile.eof() || fileLength < pcmDataSize)
     {
         memset((void*)pcmData, 0, sizeof(pcmData));
         memset((void*)opusData, 0, sizeof(opusData));
         inFile.read((char*)pcmData, pcmDataSize);
+        fileLength -= pcmDataSize;
+        i++;
 
         //opus编码
         opusDataSize = opus_encode(this->opusEncode, (opus_int16*)pcmData, OPUS_DEFAULT_SAMPLE_RATE/50, opusData, sizeof(opusData));
 
-        //opus解码
-        rt = opus_decode(opusDecode, (const unsigned char*)opusData, opusDataSize, (opus_int16*)pcmData, OPUS_DEFAULT_SAMPLE_RATE/50, 0);
-        assert(rt >= 0);
+        //记录开始丢包时的音频
+        if(i >= 60 && i <= 100) {
+            tmpFile.write((const char*)pcmData, pcmDataSize);
+        }
 
+        //模拟丢包
+        if(60 <= i && i <= 98 && (i%2 == 0)) {
+            std::cout << "loss i: " << i << std::endl;
+            continue;
+        }
+
+        if(61 <= i && i <= 99 && (i%2 == 1)) {
+            std::cout << "b i: " << i << std::endl;
+            //opus向前纠错
+            rt = opus_decode(this->opusDecode, (const unsigned char*)opusData, opusDataSize, (opus_int16*)pcmData, OPUS_DEFAULT_SAMPLE_RATE/50, 1);
+            assert(rt >= 0);
+            outFile.write((const char*)pcmData, rt*OPUS_DEFAULT_CHANNELS*2);
+        }
+
+        //opus解码
+        rt = opus_decode(this->opusDecode, (const unsigned char*)opusData, opusDataSize, (opus_int16*)pcmData, OPUS_DEFAULT_SAMPLE_RATE/50, 0);
+        assert(rt >= 0);
         outFile.write((const char*)pcmData, rt*OPUS_DEFAULT_CHANNELS*2);
-        fileLength -= pcmDataSize;
     }
 
     inFile.close();
     outFile.close();
+    tmpFile.close();
 
-    std::cout << "run end!" << std::endl;
+    std::cout << "run end! max i=" << i << std::endl;
 }
 
