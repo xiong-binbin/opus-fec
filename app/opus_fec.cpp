@@ -23,6 +23,7 @@ OpusFec::OpusFec()
     opus_encoder_ctl(opusEncode, OPUS_SET_SIGNAL(OPUS_SIGNAL_VOICE));
     opus_encoder_ctl(opusEncode, OPUS_SET_BITRATE(OPUS_AUTO));
     opus_encoder_ctl(opusEncode, OPUS_SET_INBAND_FEC(1));
+    opus_encoder_ctl(opusEncode, OPUS_SET_PACKET_LOSS_PERC(20));
 
     //创建opus音频解码器
     opusDecode = opus_decoder_create(OPUS_DEFAULT_SAMPLE_RATE, OPUS_DEFAULT_CHANNELS, &rt);
