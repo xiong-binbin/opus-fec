@@ -67,18 +67,16 @@ void OpusFec::test()
         opusDataSize = opus_encode(this->opusEncode, (opus_int16*)pcmData, OPUS_DEFAULT_SAMPLE_RATE/50, opusData, sizeof(opusData));
 
         //记录开始丢包时的音频
-        if(i >= 60 && i <= 100) {
+        if(i >= 60 && i <= 200) {
             tmpFile.write((const char*)pcmData, pcmDataSize);
         }
 
         //模拟丢包
-        if(60 <= i && i <= 98 && (i%2 == 0)) {
-            std::cout << "loss i: " << i << std::endl;
+        if(60 <= i && i <= 198 && (i%2 == 0)) {
             continue;
         }
 
-        if(61 <= i && i <= 99 && (i%2 == 1)) {
-            std::cout << "b i: " << i << std::endl;
+        if(61 <= i && i <= 199 && (i%2 == 1)) {
             //opus向前纠错
             rt = opus_decode(this->opusDecode, (const unsigned char*)opusData, opusDataSize, (opus_int16*)pcmData, OPUS_DEFAULT_SAMPLE_RATE/50, 1);
             assert(rt >= 0);
